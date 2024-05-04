@@ -1,13 +1,14 @@
 from tkinter import Canvas, Tk, Button
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageOps
 
 # Capture the drawing from the canvas
 def capture_drawing(canvas):
     # Save canvas content as a PostScript file
-    canvas.postscript(file="drawing.eps", colormode="color")
+    canvas.postscript(file="drawing.eps", colormode="mono")
 
     # Convert the PostScript file to an image format (PNG)
     img = Image.open("drawing.eps")
+    img = ImageOps.invert(img)
     img.save("drawing.png", "png")
 
     # Perform preprocessing (resize, normalize, etc.) if necessary
@@ -42,13 +43,13 @@ if __name__ == "__main__":
     # Create the main window and canvas
     root = Tk()
     root.title("Draw and Guess")
-    canvas = Canvas(root, width=200, height=200, bg="white")
+    canvas = Canvas(root, width=500, height=500, bg="white")
     canvas.pack()
     root.resizable(width=False, height=False)
 
     # Bind the left mouse button drag event to capture drawing
     canvas.bind("<B1-Motion>",
-                lambda event: canvas.create_oval(event.x - 5, event.y - 5, event.x + 5, event.y + 5, fill="black"))
+                lambda event: canvas.create_oval(event.x - 15, event.y - 15, event.x + 15, event.y + 15, fill="black"))
 
     # Create Submit and Clear buttons
     submit_button = Button(root, text="Submit", command=submit_image)
