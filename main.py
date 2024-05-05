@@ -6,33 +6,40 @@ global model
 
 # Capture the drawing from the canvas
 def capture_drawing(canvas):
+    try:
+        # Save canvas content as a PostScript file
+        canvas.postscript(file="drawing.eps", colormode="mono")
 
-    # Save canvas content as a PostScript file
-    canvas.postscript(file="drawing.eps", colormode="mono")
+        # Convert the PostScript file to an image format (PNG)
+        img = Image.open("drawing.eps")
+        img = ImageOps.invert(img)
+        img.save("drawing.png", "png")
 
-    # Convert the PostScript file to an image format (PNG)
-    img = Image.open("drawing.eps")
-    img = ImageOps.invert(img)
-    img.save("drawing.png", "png")
-
-    # Return the image
-    return img
+        # Return the image
+        return img
+    except Exception as e:
+        print("An error occurred while capturing the drawing:", e)
+        print("Make sure Ghostscript is installed and reachable by PATH.")
+        exit()
 
 # loading and returning model from model.json and weights from model.weights.h5
 def load_model():
+    try:
+        # load json and create model
+        json_file = open('model.json', 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        loaded_model = models.model_from_json(loaded_model_json)
 
-    # load json and create model
-    json_file = open('model.json', 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    loaded_model = models.model_from_json(loaded_model_json)
-
-    # load weights into new model
-    loaded_model.load_weights("model.weights.h5")
-    print("Loaded model from disk")
-    loaded_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    #print(loaded_model.summary())
-    return loaded_model
+        # load weights into new model
+        loaded_model.load_weights("model.weights.h5")
+        print("Loaded model from disk")
+        loaded_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        #print(loaded_model.summary())
+        return loaded_model
+    except FileNotFoundError:
+        print("Model files not found. Make sure 'model.json' and 'model.weights.h5' exist by running character-recognization.ipynb")
+        exit()
 
 # Preprocess the image and uploading to model, returning the prediction
 def process_image(img):
