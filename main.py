@@ -1,8 +1,12 @@
-from tkinter import Canvas, Tk, Button
+from tkinter import Canvas, Tk, Button, Label
 from PIL import Image, ImageTk, ImageOps
+from keras import models
+import numpy as np
+global model
 
 # Capture the drawing from the canvas
 def capture_drawing(canvas):
+
     # Save canvas content as a PostScript file
     canvas.postscript(file="drawing.eps", colormode="mono")
 
@@ -11,32 +15,55 @@ def capture_drawing(canvas):
     img = ImageOps.invert(img)
     img.save("drawing.png", "png")
 
-    # Perform preprocessing (resize, normalize, etc.) if necessary
-
-    # Return the preprocessed image
+    # Return the image
     return img
 
+# loading and returning model from model.json and weights from model.weights.h5
+def load_model():
 
-# Preprocess the image and send it to your CNN
+    # load json and create model
+    json_file = open('model.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = models.model_from_json(loaded_model_json)
+
+    # load weights into new model
+    loaded_model.load_weights("model.weights.h5")
+    print("Loaded model from disk")
+    loaded_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    #print(loaded_model.summary())
+    return loaded_model
+
+# Preprocess the image and uploading to model, returning the prediction
 def process_image(img):
-    # Preprocess the image (e.g., resize, normalize)
 
-    # Send the preprocessed image to your CNN for prediction
-    # Your CNN prediction code goes here
-    pass
+    # Grayscaling image and resizing
+    img = img.convert('L')  
+    img = img.resize((28, 28))
 
+    # Creating numpy array of image and normalizing
+    img_array = np.array(img) / 255.0
+    img_array = img_array.reshape(1, -1) 
 
-# Function to process the drawing and send to CNN
+    # Predicting based on image array 
+    prediction = model.predict(img_array)
+    return prediction
+
+# Function to process the drawing, sending it to the CNN and updating label
 def submit_image():
+
     img = capture_drawing(canvas)
-    print("Check Images")
-    # prediction = process_image(img)
-    # print("CNN Prediction:", prediction)
+    print("Image Saved")
+
+    prediction = process_image(img)
+    #print("CNN Prediction:", np.argmax(prediction, axis=1))
+    prediction_label.config(text=f"CNN Prediction: {np.argmax(prediction, axis=1)}")
 
 
-# Function to clear the canvas
+# Function to clear the canvas and label
 def clear_canvas():
     canvas.delete("all")
+    prediction_label.config(text="")
 
 
 if __name__ == "__main__":
@@ -49,13 +76,20 @@ if __name__ == "__main__":
 
     # Bind the left mouse button drag event to capture drawing
     canvas.bind("<B1-Motion>",
-                lambda event: canvas.create_oval(event.x - 15, event.y - 15, event.x + 15, event.y + 15, fill="black"))
+                lambda event: canvas.create_rectangle(event.x - 3, event.y - 3, event.x + 3, event.y + 3, fill="black"))
+    
+    # Loads Keras model into global variable
+    model = load_model()
 
     # Create Submit and Clear buttons
     submit_button = Button(root, text="Submit", command=submit_image)
     submit_button.pack(side="left")
     clear_button = Button(root, text="Clear", command=clear_canvas)
     clear_button.pack(side="right")
+
+    # Create a label widget to display the prediction
+    prediction_label = Label(root, text="")
+    prediction_label.pack()
 
     # Start the Tkinter event loop
     root.mainloop()
